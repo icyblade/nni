@@ -46,13 +46,21 @@ def copy_remote_directory_to_local(sftp, remote_path, local_path):
     except Exception:
         pass
 
-def create_ssh_sftp_client(host_ip, port, username, password):
+def create_ssh_sftp_client(host_ip, port, username, password=None):
     '''create ssh client'''
     try:
         check_environment()
         import paramiko
         conn = paramiko.Transport(host_ip, port)
-        conn.connect(username=username, password=password)
+        params = {'username': username}
+        if password:
+            params['password'] = password
+        elif os.path.exists('~/.ssh/config'):
+            ssh_config = paramiko.SSHConfig()
+            ssh_config.parse(open('~/.ssh/config', 'r'))
+            conf = ssh_config.lookup(host_ip)
+            params['key_filename'] = conf.get('identityfile', None)
+        conn.connect(**params)
         sftp = paramiko.SFTPClient.from_transport(conn)
         return sftp
     except Exception as exception:
